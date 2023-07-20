@@ -69,9 +69,13 @@ ERROR :
 usage()
 {
 echo "Usage :
-  $(basename $0) {servers list} [command file]
+  $(basename $0) {servers list} [command file] [scp command]
 
-  Run a scrip on a list of servers. If no script is given, just test the connection "
+  Run a scrip on a list of servers. If no script is given, just test the connection 
+  
+  scp command is executed AFTER the script is ran (use \\\$host to place the target host)
+
+  "
   exit 1
 }
 set -o pipefail
@@ -92,13 +96,17 @@ LOG_FILE=$LOG_DIR/${SCRIPT}_$(date +%Y%m%d_%H%M%S).log
 {
   startRun "$SCRIPT_LIB"
 
-  grep -v "^#" $1 | sed -e "s;#.*$;;" | while read host
+  grep -v "^#" $1 | sed -e "/^ *$/ d" -e "s;#.*$;;" | while read line
   do
+
+    host=$(echo $line | cut -f1 -d";")
+    lib=$(echo $line | cut -f2 -d";")
 
     startStep "Run on $host"
 
     echo "    =========================================================="
-    echo -n "  - $host : "
+    echo "    - $lib"
+    echo -n "    - $host : "
     if ssh -q -o strictHostKeyChecking=no $host true </dev/null
     then
       echo "Access OK, can run command"
@@ -110,15 +118,22 @@ LOG_FILE=$LOG_DIR/${SCRIPT}_$(date +%Y%m%d_%H%M%S).log
       else
         echo "    - Running $2 on $host"
         echo
-        ssh -q -o strictHostKeyChecking=no $host < $2
+        ssh -q -o strictHostKeyChecking=no $host < $2 || die "Error executing $2"
         echo
+	if [ "$3" != "" ] 
+	then
+	  eval $3 || die "Unable to run scp command"
+	fi
       fi
     else
       echo "Unable to access host"
       echo "    =========================================================="
       echo
     fi
+    
+    endStep
+
   done
 
-    endRun
+  endRun
 } 2>&1 | tee $LOG_FILE
