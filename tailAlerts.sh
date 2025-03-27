@@ -55,7 +55,7 @@ do
   i=$(($i * 10))
   indent=$(printf "${n} %${i}.${i}s > " ". . . . . . . . . . . . . . . . . . . . . . . . . . .")
   echo "$indent"
-  ssh $n tail -f /u02/app/oracle/diag/rdbms/${ORACLE_UNQNAME,,}/$DB$hostNum/trace/alert_$DB$hostNum.log | sed -e "s;^;$indent;"  &
+  ssh $n tail -f /u02/app/oracle/diag/rdbms/${ORACLE_UNQNAME}/$DB$hostNum/trace/alert_$DB$hostNum.log | sed -e "s;^;$indent;"  &
 done
 n=$currentHost
 hostNum=$currentHostNum
